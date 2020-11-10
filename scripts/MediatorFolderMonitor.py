@@ -165,17 +165,20 @@ class folder_fetcher:
                         # if there's monitored folders (>0) then begin scanning through each mounts
                         if folder_count > 0:
 
-                            folder_metrics.update({"i_count": folder_count})
+                            folder_metrics.update(
+                                {
+                                    "i_count": folder_count,
+                                    "i_file_count": 0,
+                                    "i_folder_count": 0,
+                                    "as_mounts": [],
+                                }
+                            )
 
                             # not sure if there could be more than one folder (mount) for a monitored folder service
                             for mount in folder.childNodes:
 
                                 # test if instance is valid element node minidom. otherwise skip.
                                 if mount.nodeType is minidom.Node.ELEMENT_NODE:
-
-                                    # add the mount name to the list of strings
-                                    if "as_mounts" not in folder_metrics.keys():
-                                        folder_metrics.update({"as_mounts": []})
 
                                     folder_metrics["as_mounts"].append(mount.getAttribute("path"))
 
@@ -188,17 +191,8 @@ class folder_fetcher:
                                             # add to the count if there's multiple mounts (doubt there is.. but anywhoo)
                                             files, folders = folder_scan(sub_node)
 
-                                            if "i_file_count" not in folder_metrics.keys():
-                                                folder_metrics.update({"i_file_count": files})
-
-                                            else:
-                                                folder_metrics["i_file_count"] += files
-
-                                            if "i_folder_count" not in folder_metrics.keys():
-                                                folder_metrics.update({"i_folder_count": folders})
-
-                                            else:
-                                                folder_metrics["i_folder_count"] += folders
+                                            folder_metrics["i_file_count"] += files
+                                            folder_metrics["i_folder_count"] += folders
 
                                         except Exception:
                                             continue
