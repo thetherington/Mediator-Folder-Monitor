@@ -107,10 +107,10 @@ class folder_fetcher:
                     self.folder_catalog.update(
                         {
                             instance: {
-                                "host_ip": host_ip,
-                                "host_name": host_name,
-                                "instance": instance,
-                                "unique_id": unique_id,
+                                "s_host_ip": host_ip,
+                                "s_host_name": host_name,
+                                "s_instance": instance,
+                                "i_unique_id": unique_id,
                             }
                         }
                     )
