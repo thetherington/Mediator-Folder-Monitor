@@ -78,13 +78,13 @@ class folder_fetcher:
 
                 with open(os.getcwd() + "\\_files\\services.xml", "r") as f:
 
-                    doc = f.read()
+                    strdoc = f.read()
 
-                    doc = doc.replace("\n", "")
-                    doc = doc.replace("\r", "")
-                    doc = doc.replace("\t", "")
+                    strdoc = strdoc.replace("\n", "")
+                    strdoc = strdoc.replace("\r", "")
+                    strdoc = strdoc.replace("\t", "")
 
-                    doc = minidom.parseString(doc)
+                    doc = minidom.parseString(strdoc)
 
             except Exception as e:
                 print(e)
