@@ -1,4 +1,5 @@
 import argparse
+import copy
 import datetime
 import json
 import os
@@ -19,6 +20,12 @@ class folder_fetcher:
         self.request_services_params = {
             "uniqueid": 0,
             "command": "getservices",
+            "noxsl": None,
+        }
+
+        self.request_folder_params = {
+            "uniqueid": None,
+            "command": "GetFolderList",
             "noxsl": None,
         }
 
@@ -60,6 +67,151 @@ class folder_fetcher:
         except Exception as e:
             print(e)
             return None
+
+    def fetch_folder(self, folder):
+        # recursive function to scan folders by recalling with a childNode
+        def folder_scan(dom_obj):
+
+            files = 0
+            folders = 0
+
+            # encase there something that isn't a element node
+            if dom_obj.nodeType is minidom.Node.ELEMENT_NODE:
+
+                # just get the file count and return right away
+                if dom_obj.tagName == "Files":
+
+                    files += int(dom_obj.getAttribute("count"))
+
+                    return files, folders
+
+                # theres probably a folder node
+                else:
+
+                    # try to get the count attribute. fail and do nothing if it doesn't exist
+                    try:
+                        folders += int(dom_obj.getAttribute("count"))
+
+                    except Exception:
+                        pass
+
+                    # start iterating through childnodes if there are any
+                    for sub_node in dom_obj.childNodes:
+
+                        # try to call back into this function again. otherwise if the return
+                        # is null, then continue the iteration. function could return null if dom object
+                        # isn't what expected.
+                        try:
+
+                            _files, _folders = folder_scan(sub_node)
+
+                            # add the found results to the current stack counters
+                            files += _files
+                            folders += _folders
+
+                        except Exception as e:
+                            continue
+
+                    # return current stack or everything
+                    return files, folders
+
+        # if the unique_id is ready then start the folder collection
+        if "i_unique_id" in folder.keys():
+
+            doc = None
+
+            # get a copy folder parameters
+            folder_metrics = copy.deepcopy(folder)
+
+            # try to get a file named after the unique id. needs more work...
+            if self.sub:
+
+                try:
+
+                    with open(
+                        os.getcwd() + "\\_files\\" + str(folder["i_unique_id"]) + ".xml", "r"
+                    ) as f:
+
+                        strdoc = f.read()
+
+                        strdoc = strdoc.replace("\n", "")
+                        strdoc = strdoc.replace("\r", "")
+                        strdoc = strdoc.replace("\t", "")
+
+                        doc = minidom.parseString(strdoc)
+
+                except Exception as e:
+                    pass
+                    # print(e)
+
+            # get a copy of the request parameters and update the uniqeid with the folder params
+            else:
+
+                params = copy.deepcopy(self.request_folder_params)
+                params["uniqueid"] = folder["i_unique_id"]
+
+                doc = self.fetch(self.url_get_services, params)
+
+            # scan the dom if there is a valid minidom object
+            if doc:
+
+                # get into the Monitored Folders tree. if it doesn't exist then this returns out
+                for folder in doc.getElementsByTagName("MonitoredFolders"):
+
+                    try:
+
+                        folder_count = int(folder.getAttribute("count"))
+
+                        # if there's monitored folders (>0) then begin scanning through each mounts
+                        if folder_count > 0:
+
+                            folder_metrics.update({"i_count": folder_count})
+
+                            # not sure if there could be more than one folder (mount) for a monitored folder service
+                            for mount in folder.childNodes:
+
+                                # test if instance is valid element node minidom. otherwise skip.
+                                if mount.nodeType is minidom.Node.ELEMENT_NODE:
+
+                                    # add the mount name to the list of strings
+                                    if "as_mounts" not in folder_metrics.keys():
+                                        folder_metrics.update({"as_mounts": []})
+
+                                    folder_metrics["as_mounts"].append(mount.getAttribute("path"))
+
+                                    # iterate through each sub node in the mount node regardless what it is
+                                    for sub_node in mount.childNodes:
+
+                                        try:
+
+                                            # call the folder_scan which will recursively keep looking for nested folders and files
+                                            # add to the count if there's multiple mounts (doubt there is.. but anywhoo)
+                                            files, folders = folder_scan(sub_node)
+
+                                            if "i_file_count" not in folder_metrics.keys():
+                                                folder_metrics.update({"i_file_count": files})
+
+                                            else:
+                                                folder_metrics["i_file_count"] += files
+
+                                            if "i_folder_count" not in folder_metrics.keys():
+                                                folder_metrics.update({"i_folder_count": folders})
+
+                                            else:
+                                                folder_metrics["i_folder_count"] += folders
+
+                                        except Exception:
+                                            continue
+
+                        else:
+
+                            # just set it to 0 and exit out
+                            folder_metrics.update({"i_count": folder_count})
+
+                    except Exception as e:
+                        print(e)
+
+            return folder_metrics
 
     def catalog_folder_services(self):
         def get_element(node, name):
@@ -127,6 +279,11 @@ def main():
     foldermonitor = folder_fetcher(**params)
 
     print(json.dumps(foldermonitor.folder_catalog, indent=2))
+
+    for _, parts in foldermonitor.folder_catalog.items():
+        print(foldermonitor.fetch_folder(parts))
+
+    # print(foldermonitor.fetch_folder(foldermonitor.folder_catalog["MMRDelivery"]))
 
 
 if __name__ == "__main__":
