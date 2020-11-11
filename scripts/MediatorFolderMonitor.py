@@ -8,7 +8,7 @@ from xml.dom import minidom
 import requests
 
 
-class folder_fetcher:
+class FolderFetcher:
     def __init__(self, **kwargs):
 
         self.host = None
@@ -34,7 +34,7 @@ class folder_fetcher:
 
         for key, value in kwargs.items():
 
-            if "host" == key and value:
+            if key == "host" and value:
                 self.host = value
 
             if "port" in key and value:
@@ -282,15 +282,14 @@ def main():
         "sub": "../_files/services.xml",
     }
 
-    foldermonitor = folder_fetcher(**params)
+    folder_monitor = FolderFetcher(**params)
 
-    print(json.dumps(foldermonitor.folder_catalog, indent=2))
+    print(json.dumps(folder_monitor.folder_catalog, indent=2))
 
-    for metrics in foldermonitor.generate_stats():
+    for metrics in folder_monitor.generate_stats():
         print(metrics)
 
 
 if __name__ == "__main__":
     # mediator
     main()
-
