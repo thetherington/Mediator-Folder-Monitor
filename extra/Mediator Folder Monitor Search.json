@@ -1,0 +1,28 @@
+[
+  {
+    "_id": "2b91b330-244e-11eb-a67c-d39d264cbb1e",
+    "_type": "search",
+    "_source": {
+      "title": "Mediator Folders",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "host",
+        "poller.mediator.folders.s_instance",
+        "poller.mediator.folders.i_unique_id",
+        "poller.mediator.folders.i_count",
+        "poller.mediator.folders.as_mounts",
+        "poller.mediator.folders.i_folder_count",
+        "poller.mediator.folders.i_file_count"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"log-metric-poller-mediator-*\",\"highlightAll\":true,\"version\":true,\"filter\":[],\"query\":{\"query_string\":{\"query\":\"_exists_:poller.mediator.folders\",\"analyze_wildcard\":true}}}"
+      }
+    }
+  }
+]
