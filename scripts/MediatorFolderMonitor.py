@@ -30,6 +30,7 @@ class folder_fetcher:
         }
 
         self.sub = None
+        self.elapse_time = None
 
         for key, value in kwargs.items():
 
@@ -48,10 +49,6 @@ class folder_fetcher:
 
         self.catalog_folder_services()
 
-        # resp = self.fetch(self.url_get_services, self.request_services_params)
-
-        # print(resp.toprettyxml())
-
     def fetch(self, url, params):
 
         try:
@@ -67,6 +64,19 @@ class folder_fetcher:
         except Exception as e:
             print(e)
             return None
+
+    def generate_stats(self):
+
+        if self.elapse_time:
+
+            diff = datetime.datetime.utcnow() - self.elapse_time
+
+            if diff.total_seconds() > 300:
+                self.catalog_folder_services()
+
+            for _, items in self.folder_catalog.items():
+
+                yield self.fetch_folder(items)
 
     def fetch_folder(self, folder):
         # recursive function to scan folders by recalling with a childNode
@@ -109,7 +119,7 @@ class folder_fetcher:
                             files += _files
                             folders += _folders
 
-                        except Exception as e:
+                        except Exception:
                             continue
 
                     # return current stack or everything
@@ -261,6 +271,8 @@ class folder_fetcher:
                         }
                     )
 
+            self.elapse_time = datetime.datetime.utcnow()
+
 
 def main():
 
@@ -274,10 +286,8 @@ def main():
 
     print(json.dumps(foldermonitor.folder_catalog, indent=2))
 
-    for _, parts in foldermonitor.folder_catalog.items():
-        print(foldermonitor.fetch_folder(parts))
-
-    # print(foldermonitor.fetch_folder(foldermonitor.folder_catalog["MMRDelivery"]))
+    for metrics in foldermonitor.generate_stats():
+        print(metrics)
 
 
 if __name__ == "__main__":
