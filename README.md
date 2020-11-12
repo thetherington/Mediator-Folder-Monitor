@@ -39,3 +39,32 @@ To configure a poller to use the module start a new python poller configuration 
 7. Save changes, then restart the poller program.
 
 ## Testing:
+
+_todo..._
+
+## Sample Data Output:
+
+```
+{
+ "s_host_ip": "10.207.16.27",
+ "s_host_name": "kmtc-comp07",
+ "s_instance": "MMRDelivery",
+ "i_unique_id": 936775,
+ "i_count": 1,
+ "i_file_count": 4,
+ "i_folder_count": 4,
+ "as_mounts": [
+  "/mnt/mark50/incoming/ironmam_kmtc_cable"
+ ]
+}
+```
+
+```
+{
+ "s_host_ip": "10.207.16.28",
+ "s_host_name": "kmtc-comp08",
+ "s_instance": "paidProgrammingImportPMT",
+ "i_unique_id": 936780,
+ "i_count": 0
+}
+```
