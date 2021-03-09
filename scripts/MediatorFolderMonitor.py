@@ -1,4 +1,3 @@
-import argparse
 import copy
 import datetime
 import json
@@ -14,7 +13,6 @@ class FolderFetcher:
         self.host = None
         self.port = "8080"
         self.get_services_route = "info/scripts/CGItoXML.exe/servicerequest"
-
         self.folder_catalog = {}
 
         self.request_services_params = {
@@ -30,7 +28,10 @@ class FolderFetcher:
         }
 
         self.sub = None
-        self.elapse_time = None
+        self.logon = None
+        self.elapse_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
+        self.headers = {"Accept": "application/xml"}
+        self.sys_name = None
 
         for key, value in kwargs.items():
 
@@ -43,19 +44,80 @@ class FolderFetcher:
             if "sub" in key and value:
                 self.sub = value
 
+            if "system_name" in key and value:
+                self.system_name = value
+
+        if "login" in kwargs.keys():
+
+            self.login_params = {
+                "uniqueid": 0,
+                "command": "login",
+                "noxsl": None,
+                "user": kwargs["login"]["user"],
+                "pass": kwargs["login"]["pass"],
+                "successrequest": "",
+            }
+
+            self.logout_params = {
+                "uniqueid": 0,
+                "command": "logout",
+                "noxsl": None,
+            }
+
+            self.url_login_service = "http://{}:{}/{}".format(
+                self.host, self.port, self.get_services_route
+            )
+
+            self.logon = True
+
         self.url_get_services = "http://{}:{}/{}".format(
             self.host, self.port, self.get_services_route
         )
 
-        self.catalog_folder_services()
-
-    def fetch(self, url, params):
+    def login(self, http_session):
 
         try:
 
-            resp = requests.get(url, params=params, headers={"Accept": "application/xml"})
+            resp = http_session.post(
+                self.url_login_service,
+                data=self.login_params,
+                headers={
+                    "Accept": "application/xml",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            )
 
-            resp.close()
+            if (
+                "<Error>Username or password not recognized</Error>" not in resp.text
+                or resp.status_code != 200
+            ):
+
+                return resp.status_code
+
+        except Exception as e:
+            print(e)
+
+        print(resp.status_code)
+        print(resp.text)
+
+        return None
+
+    def logout(self, http_session):
+
+        try:
+
+            http_session.get(
+                self.url_login_service, params=self.logout_params, headers=self.headers,
+            )
+
+        except Exception as e:
+            print(e)
+
+    def fetch(self, http_session, url, params):
+
+        try:
+
+            resp = http_session.get(url, params=params, headers=self.headers)
 
             doc = minidom.parseString(str(resp.text))
 
@@ -67,18 +129,28 @@ class FolderFetcher:
 
     def generate_stats(self):
 
-        if self.elapse_time:
+        with requests.Session() as http_session:
+
+            if self.logon:
+
+                # exit out of function if login failed
+                if not self.login(http_session):
+                    return None
 
             diff = datetime.datetime.utcnow() - self.elapse_time
 
+            # refresh the folder catalog if older than 5m
             if diff.total_seconds() > 300:
-                self.catalog_folder_services()
+                self.catalog_folder_services(http_session)
 
             for _, items in self.folder_catalog.items():
 
-                yield self.fetch_folder(items)
+                yield self.fetch_folder(http_session, items)
 
-    def fetch_folder(self, folder):
+            if self.logon:
+                self.logout(http_session)
+
+    def fetch_folder(self, http_session, folder):
         # recursive function to scan folders by recalling with a childNode
         def folder_scan(dom_obj):
 
@@ -160,7 +232,7 @@ class FolderFetcher:
                 params = copy.deepcopy(self.request_folder_params)
                 params["uniqueid"] = folder["i_unique_id"]
 
-                doc = self.fetch(self.url_get_services, params)
+                doc = self.fetch(http_session, self.url_get_services, params)
 
             # scan the dom if there is a valid minidom object
             if doc:
@@ -215,9 +287,12 @@ class FolderFetcher:
                     except Exception as e:
                         print(e)
 
+            if self.system_name:
+                folder_metrics.update({"s_system": self.system_name})
+
             return folder_metrics
 
-    def catalog_folder_services(self):
+    def catalog_folder_services(self, http_session):
         def get_element(node, name):
 
             try:
@@ -247,7 +322,7 @@ class FolderFetcher:
 
         else:
 
-            doc = self.fetch(self.url_get_services, self.request_services_params)
+            doc = self.fetch(http_session, self.url_get_services, self.request_services_params)
 
         if doc:
 
@@ -277,19 +352,26 @@ class FolderFetcher:
 def main():
 
     params = {
-        "host": "aws-core03.ironmam.mws.disney.com",
+        "host": "10.127.3.80",
         "port": "8080",
-        "sub": "../_files/services.xml",
+        "login": {"user": "evertz", "pass": "pharos1"},
+        "system_name": "MAM_Production",
+        # "sub": "../_files/services.xml",
     }
 
     folder_monitor = FolderFetcher(**params)
 
-    print(json.dumps(folder_monitor.folder_catalog, indent=2))
+    inputQuit = False
 
-    for metrics in folder_monitor.generate_stats():
-        print(metrics)
+    while inputQuit is not "q":
+
+        for metrics in folder_monitor.generate_stats():
+            print(metrics)
+
+        print(json.dumps(folder_monitor.folder_catalog, indent=2))
+
+        inputQuit = input("\nType q to quit or just hit enter: ")
 
 
 if __name__ == "__main__":
-    # mediator
     main()

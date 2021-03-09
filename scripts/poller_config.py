@@ -20,6 +20,8 @@ class Plugin(InsitePlugin):
             params = {
                 "host": host,
                 "port": "8080",
+                "system_name": "MAN_Production",
+                "login": {"user": "evertz", "pass": "pharos1"},
             }
 
             self.collector = FolderFetcher(**params)
