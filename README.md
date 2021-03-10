@@ -32,11 +32,25 @@ To configure a poller to use the module start a new python poller configuration 
 
 1. Click the create a custom poller from the poller application settings page.
 2. Enter a Name, Summary and Description information.
-3. Enter the mediator server running information center in the _Hosts_ tab (can use DNS if it's available.
+3. Enter the mediator server running information center in the _Hosts_ tab (can use DNS if it's available).
 4. From the _Input_ tab change the _Type_ to __Python__
 5. From the _Input_ tab change the _Metric Set Name_ field to __mediator__
 6. Select the _Script_ tab, then paste the contents of __scripts/poller_config.py__ into the script panel.
-7. Save changes, then restart the poller program.
+7. Update the parameters "system_name" and "login" with the correct information.
+
+```
+            params = {
+                "host": host,
+                "port": "8080",
+                "system_name": "MAN_Production",
+                "login": {"user": "evertz", "pass": "pharos1"},
+            }
+
+```
+   
+      Note: If the Mediator Information center does not require a user credentials, remove the "login" parameter from the params dictionary.
+
+8. Save changes, then restart the poller program.
 
 ## Testing:
 
@@ -55,7 +69,8 @@ _todo..._
  "i_folder_count": 4,
  "as_mounts": [
   "/mnt/mark50/incoming/ironmam_kmtc_cable"
- ]
+ ],
+ "s_system": "MAN_Production"
 }
 ```
 
@@ -65,6 +80,7 @@ _todo..._
  "s_host_name": "kmtc-comp08",
  "s_instance": "paidProgrammingImportPMT",
  "i_unique_id": 936780,
- "i_count": 0
+ "i_count": 0,
+ "s_system": "MAN_Production"
 }
 ```
